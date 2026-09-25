@@ -9,7 +9,6 @@
   <ItemGroup>
     <Folder Include="Infrastructure\Migrations\" />
     <Folder Include="WebApi\Validations\" />
-    <Folder Include="WebApi\wwwroot\" />
   </ItemGroup>
 
   <ItemGroup>
