@@ -103,29 +103,44 @@ public class EquipmentController : ControllerBase
     /// Редактирует существующую единицу техники.
     /// </summary>
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] EquipmentDto dto)
+    public async Task<IActionResult> Update(int id, [FromBody] System.Text.Json.JsonElement json)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
-        if (await _repository.ExistsByInventoryNumberAsync(dto.InventoryNumber, id))
-        {
-            return BadRequest("Указанный учетный номер уже используется другим оборудованием.");
-        }
-
-        var equipment = new Equipment
-        {
-            Id = id,
-            InventoryNumber = dto.InventoryNumber,
-            Name = dto.Name,
-            TypeId = dto.TypeId,
-            RoomNumber = dto.RoomNumber
-        };
-
         try
         {
+            var allEquipment = await _repository.GetAllAsync();
+            var equipment = allEquipment.FirstOrDefault(e => e.Id == id);
+
+            if (equipment == null)
+            {
+                return NotFound("Запись не найдена.");
+            }
+
+            if (json.TryGetProperty("inventoryNumber", out var invNumProp))
+            {
+                var newInvNum = invNumProp.GetString() ?? string.Empty;
+
+                if (await _repository.ExistsByInventoryNumberAsync(newInvNum, id))
+                {
+                    return BadRequest("Указанный учетный номер уже используется другим оборудованием.");
+                }
+                equipment.InventoryNumber = newInvNum;
+            }
+
+            if (json.TryGetProperty("name", out var nameProp))
+            {
+                equipment.Name = nameProp.GetString() ?? string.Empty;
+            }
+
+            if (json.TryGetProperty("typeId", out var typeProp))
+            {
+                equipment.TypeId = typeProp.GetInt32();
+            }
+
+            if (json.TryGetProperty("roomNumber", out var roomProp))
+            {
+                equipment.RoomNumber = roomProp.GetInt32();
+            }
+
             await _repository.UpdateAsync(equipment);
             return NoContent();
         }
@@ -134,4 +149,5 @@ public class EquipmentController : ControllerBase
             return StatusCode(500, $"Ошибка при обновлении записи: {ex.Message}");
         }
     }
+
 }
